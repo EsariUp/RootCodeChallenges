@@ -22,16 +22,28 @@ const useAppStore = create((set, get) => ({
     // Completed Challenges
     completedChallenges: [], // Store completed challenges
     markChallengeCompleted: (challengeId, timeTaken) =>
-        set((state) => ({
-            completedChallenges: [
-                ...state.completedChallenges,
-                { id: challengeId, timeTaken },
-            ],
-        })),
+        set((state) => {
+            // Check if the challenge is already marked as completed
+            const isAlreadyCompleted = state.completedChallenges.some(
+                (challenge) => challenge.id === challengeId
+            );
+
+            if (!isAlreadyCompleted) {
+                return {
+                    completedChallenges: [
+                        ...state.completedChallenges,
+                        { id: challengeId, timeTaken },
+                    ],
+                };
+            }
+
+            // If it's already completed, no changes are made
+            return state;
+        }),
 
     // Check if a Challenge is Completed (Helper Function)
     isChallengeCompleted: (challengeId) => {
-        const completedChallenges = get().completedChallenges; // Access completed challenges from state
+        const completedChallenges = get().completedChallenges;
         return completedChallenges.some((challenge) => challenge.id === challengeId);
     },
 
@@ -39,6 +51,15 @@ const useAppStore = create((set, get) => ({
     getSortedCompletedChallenges: () => {
         const completedChallenges = get().completedChallenges;
         return [...completedChallenges].sort((a, b) => a.timeTaken - b.timeTaken);
+    },
+
+    // Combined Filters Helper (Derived State)
+    getCombinedFilters: () => {
+        const { filters } = get();
+        const queryParams = [];
+        if (filters.language) queryParams.push(`language=${filters.language}`);
+        if (filters.difficulty) queryParams.push(`difficulty=${filters.difficulty}`);
+        return queryParams.join("&");
     },
 }));
 
