@@ -16,19 +16,27 @@ const ChallengeListPage = () => {
     const currentPage = useAppStore((state) => state.currentPage);
     const setCurrentPage = useAppStore((state) => state.setCurrentPage);
     const markChallengeCompleted = useAppStore((state) => state.markChallengeCompleted);
-    const isChallengeCompleted = useAppStore((state) => state.isChallengeCompleted); // Access helper method
+    const isChallengeCompleted = useAppStore((state) => state.isChallengeCompleted);
+
+    // Combined Filters
+    const getCombinedFilters = useAppStore((state) => state.getCombinedFilters);
 
     useEffect(() => {
         const fetchChallenges = async () => {
             setIsLoading(true);
             setErrorMessage("");
+
+            const combinedFilters = getCombinedFilters();
             const url = `https://2hol1zaqsj.execute-api.us-east-1.amazonaws.com/dev/challenges?page=${currentPage}&limit=6${
-                languageFilter ? `&language=${languageFilter}` : ""
-            }${difficultyFilter ? `&difficulty=${difficultyFilter}` : ""}`;
+                combinedFilters ? `&${combinedFilters}` : ""
+            }`;
+
+            console.log("Constructed URL:", url); // Log the generated URL for debugging
 
             try {
                 const response = await axios.get(url);
-                console.log(response.data, 'data')
+                console.log("API Response:", response.data); // Log the raw API response
+
                 if (response.data && Array.isArray(response.data.data)) {
                     setChallenges(response.data.data);
                 } else {
@@ -36,6 +44,7 @@ const ChallengeListPage = () => {
                     setErrorMessage("No challenges found for the selected filters.");
                 }
             } catch (error) {
+                console.error("API Error:", error); // Log the error for debugging
                 setErrorMessage("Failed to fetch challenges. Please try again later.");
             } finally {
                 setIsLoading(false);
@@ -51,7 +60,10 @@ const ChallengeListPage = () => {
 
             {/* Filters */}
             <div className="filters">
-                <select onChange={(e) => setLanguageFilter(e.target.value)} value={languageFilter}>
+                <select
+                    onChange={(e) => setLanguageFilter(e.target.value)}
+                    value={languageFilter}
+                >
                     <option value="">All Languages</option>
                     <option value="101">TypeScript</option>
                     <option value="102">Python</option>
@@ -60,7 +72,10 @@ const ChallengeListPage = () => {
                     <option value="105">SQL</option>
                 </select>
 
-                <select onChange={(e) => setDifficultyFilter(e.target.value)} value={difficultyFilter}>
+                <select
+                    onChange={(e) => setDifficultyFilter(e.target.value)}
+                    value={difficultyFilter}
+                >
                     <option value="">All Difficulty Levels</option>
                     <option value="EASY">Easy</option>
                     <option value="MEDIUM">Medium</option>
@@ -82,6 +97,7 @@ const ChallengeListPage = () => {
                             ) : (
                                 <button
                                     onClick={() => {
+                                        markChallengeCompleted(challenge.id, 0); // Mark challenge as completed with default time
                                         window.location.href = `/challenges/${challenge.id}/questions`;
                                     }}
                                 >
