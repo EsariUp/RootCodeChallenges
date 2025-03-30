@@ -6,7 +6,7 @@ const QuestionAttemptPopup = ({ question, closePopup, onComplete }) => {
 
     useEffect(() => {
         const timer = setInterval(() => setTimeSpent((prev) => prev + 1), 1000); // Increment timer every second
-        return () => clearInterval(timer); // Clear timer when popup closes
+        return () => clearInterval(timer);
     }, []);
 
     const handleSubmit = () => {

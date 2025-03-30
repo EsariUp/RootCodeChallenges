@@ -1,19 +1,23 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import useAppStore from "../store/useAppStore";
 import QuestionAttemptPopup from "./questionAttemptPopup";
 
 const ChallengeQuestionsPage = () => {
-    const { id } = useParams(); // Get challenge ID from the URL
+    const { id } = useParams();
+    const navigate = useNavigate();
+
+    const markChallengeCompleted = useAppStore((state) => state.markChallengeCompleted); // Zustand function
     const [questions, setQuestions] = useState([]);
     const [challenges, setChallenges] = useState('');
     const [completedQuestions, setCompletedQuestions] = useState(() => {
         const savedState = localStorage.getItem(`completedQuestions-${id}`);
         return savedState ? JSON.parse(savedState) : [];
     });
-    const [timeTaken, setTimeTaken] = useState({}); // Track time taken for each question
-    const [isPopupOpen, setIsPopupOpen] = useState(false); // Manage popup visibility
-    const [selectedQuestion, setSelectedQuestion] = useState(null); // Selected question for popup
+    const [timeTaken, setTimeTaken] = useState({});
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
+    const [selectedQuestion, setSelectedQuestion] = useState(null);
 
     useEffect(() => {
         const fetchQuestions = async () => {
@@ -23,7 +27,7 @@ const ChallengeQuestionsPage = () => {
                 );
                 setQuestions(response.data.data[0]?.questions || []);
                 setChallenges(response.data.data[0]?.challenge);
-                console.log(response.data, 'data in challenge questions');
+                console.log(response.data, "data in challenge questions");
             } catch (error) {
                 console.error("Failed to fetch questions:", error);
             }
@@ -40,12 +44,24 @@ const ChallengeQuestionsPage = () => {
             JSON.stringify(updatedCompletedQuestions)
         );
 
-        // Add time taken for the completed question
+        // Store the time spent for the specific question
         setTimeTaken((prev) => ({
             ...prev,
-            [questionId]: timeSpent, // Store the time spent for the specific question
+            [questionId]: timeSpent,
         }));
     };
+
+    // When all questions are completed, mark the challenge as completed
+    useEffect(() => {
+        if (questions.length > 0 && completedQuestions.length === questions.length) {
+            const totalTimeTaken = Object.values(timeTaken).reduce(
+                (total, curr) => total + curr,
+                0
+            ); // Calculate total time taken for the challenge
+
+            markChallengeCompleted(parseInt(id), totalTimeTaken); // Mark challenge as completed in Zustand
+        }
+    }, [completedQuestions, questions, timeTaken, id, markChallengeCompleted]);
 
     const progress = questions.length
         ? (completedQuestions.length / questions.length) * 100
@@ -56,6 +72,7 @@ const ChallengeQuestionsPage = () => {
             <h2>{challenges}</h2>
             <p>Progress: {Math.round(progress)}%</p>
             <progress value={progress} max="100"></progress>
+
             <div style={{ marginTop: "20px" }}>
                 {questions.map((question) => (
                     <div
@@ -74,30 +91,30 @@ const ChallengeQuestionsPage = () => {
                                 Time Taken: {timeTaken[question.id]} seconds
                             </p>
                         )}
-                        <p>
-                            {completedQuestions.includes(question.id)
-                                ? `Completed`
-                                : `Start`}
-                        </p>
                         <button
                             onClick={() => {
-                                setSelectedQuestion(question);
-                                setIsPopupOpen(true);
+                                if (!completedQuestions.includes(question.id)) {
+                                    setSelectedQuestion(question);
+                                    setIsPopupOpen(true);
+                                }
                             }}
                             style={{
                                 padding: "8px 12px",
-                                backgroundColor: "#007bff",
+                                backgroundColor: completedQuestions.includes(question.id)
+                                    ? "#28a745" // Green for "Completed"
+                                    : "#007bff", // Blue for "Start"
                                 color: "white",
                                 border: "none",
                                 borderRadius: "5px",
                                 cursor: "pointer",
                             }}
                         >
-                            Attempt Question
+                            {completedQuestions.includes(question.id) ? "Completed" : "Start"}
                         </button>
                     </div>
                 ))}
             </div>
+
             {isPopupOpen && selectedQuestion && (
                 <QuestionAttemptPopup
                     question={selectedQuestion}
@@ -105,6 +122,21 @@ const ChallengeQuestionsPage = () => {
                     onComplete={markQuestionCompleted} // Pass markQuestionCompleted to Popup
                 />
             )}
+            {/* Button to navigate to Tracking */}
+            <button
+                onClick={() => navigate("/tracking")}
+                style={{
+                    marginTop: "20px",
+                    padding: "10px 20px",
+                    backgroundColor: "#28a745",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                }}
+            >
+                View Tracking
+            </button>
         </div>
     );
 };

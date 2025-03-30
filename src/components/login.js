@@ -37,7 +37,7 @@ const Login = () => {
     };
 
     return (
-        <div className="login-page">
+        <div className="login-container"> {/* Wrapper with centering styles */}
             <form className="login-form" onSubmit={handleLogin}>
                 <h2>Login</h2>
                 {errorMessage && <p className="error-message">{errorMessage}</p>}
